@@ -5,8 +5,197 @@ import streamlit as st
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 from xml.dom.minidom import parse, parseString
+import xml.etree.ElementTree as ET
 
 pl = st.empty()
+
+
+def write_inifile(
+    r1, v01, T1, peds1, r2, v02, T2, peds2, r3, v03, T3, peds3, ini_file, geometry_file
+):
+    global_group_id = 1
+    # --------
+    # create_geo_header
+    data = ET.Element("JuPedSim")
+    data.set("project", "Ezel")
+    data.set("version", "0.9")
+    # make room/subroom
+    header = ET.SubElement(data, "header")
+    seed = ET.SubElement(header, "seed")
+    seed.text = "1234"
+    max_sim_time = ET.SubElement(header, "max_sim_time")
+    max_sim_time.text = "200"
+    geometry_f = ET.SubElement(header, "geometry")
+    geometry_f.text = geometry_file.name
+    traj = ET.SubElement(header, "trajectories")
+    traj.set("format", "plain")
+    traj.set("fps", "16")
+    traj.set("precision", "4")
+    traj.set("color_mode", "group")
+    file_l = ET.SubElement(traj, "file")
+    traj_name = f"trajectories_R1_{r1:.1f}_V1_{v01:.1f}_T1_{T1:.1f}_R2_{r2:.1f}_V2_{v02:.1f}_T2_{T2:.1f}_R3_{r3:.1f}_V3_{v03:.1f}_T3_{T3:.1f}"
+    file_l.set("location", traj_name)
+    agents = ET.SubElement(data, "agents")
+    agents.set("operational_model_id", "3")
+    dist = ET.SubElement(agents, "agents_distribution")
+    #print("peds", peds1)
+    for (X1, Y1) in peds1:
+        #st.code(f"G1: {X1:.3f}, {Y1:.3f}")
+        group = ET.SubElement(dist, "group")
+        group.set("group_id", f"{global_group_id}")
+        #global_group_id += 1
+        group.set("agent_parameter_id", "1")
+        group.set("room_id", "1")
+        group.set("subroom_id", "0")
+        group.set("number", "1")
+        group.set("router_id", "1")
+        group.set("startX", f"{X1:.3f}")
+        group.set("startY", f"{Y1:.3f}")
+        
+
+    global_group_id += 1
+    # -----
+    #print("peds2", peds2)
+    for (X2, Y2) in peds2:
+        #st.code(f"G2: {X2:.3f}, {Y2:.3f}")
+        group = ET.SubElement(dist, "group")
+        group.set("group_id", f"{global_group_id}")
+        #global_group_id += 1
+        group.set("agent_parameter_id", "2")
+        group.set("room_id", "1")
+        group.set("subroom_id", "0")
+        group.set("number", "1")
+        group.set("router_id", "1")
+        group.set("startX", f"{X2:.3f}")
+        group.set("startY", f"{Y2:.3f}")        
+        
+    # -----
+    global_group_id += 1
+#    print("peds3", peds3)
+    for (X3, Y3) in peds3:
+#        print(peds3)
+ #       st.code(f"G3: {X3:.3f}, {Y3:.3f}")
+        group = ET.SubElement(dist, "group")
+        group.set("group_id", f"{global_group_id}")
+        #global_group_id += 1
+        group.set("agent_parameter_id", "3")
+        group.set("room_id", "1")
+        group.set("subroom_id", "0")
+        group.set("number", "1")
+        group.set("router_id", "1")
+        group.set("startX", f"{X3:.3f}")
+        group.set("startY", f"{Y3:.3f}")
+        
+
+    operational = ET.SubElement(data, "operational_models")
+    model = ET.SubElement(operational, "model")
+    model.set("operational_model_id", "3")
+    model.set("description", "Tordeux2015")
+    parameters = ET.SubElement(model, "model_parameters")
+    step = ET.SubElement(parameters, "stepsize")
+    step.text = "0.01"
+    exit_str = ET.SubElement(parameters, "exit_crossing_strategy")
+    exit_str.text = "3"
+    lcells = ET.SubElement(parameters, "linkedcells")
+    lcells.set("enabled", "true")
+    lcells.set("cell_size", "2.2")
+    force_ped = ET.SubElement(parameters, "force_ped")
+    force_ped.set("a", "8")
+    force_ped.set("D", "0.1")
+    force_wall = ET.SubElement(parameters, "force_wall")
+    force_wall.set("a", "5")
+    force_wall.set("D", "0.02")
+    # -------
+    agent_parameters = ET.SubElement(model, "agent_parameters")
+    agent_parameters.set("agent_parameter_id", "1")
+    v0 = ET.SubElement(agent_parameters, "v0")
+    v0.set("mu", f"{v01:.1f}")
+    v0.set("sigma", "0")
+    bmax = ET.SubElement(agent_parameters, "bmax")
+    bmax.set("mu", f"{r1:.1f}")
+    bmax.set("sigma", "0")
+    bmin = ET.SubElement(agent_parameters, "bmin")
+    bmin.set("mu", f"{r1:.1f}")
+    bmin.set("sigma", "0")
+    amin = ET.SubElement(agent_parameters, "amin")
+    amin.set("mu", f"{r1:.1f}")
+    amin.set("sigma", "0")
+    tau = ET.SubElement(agent_parameters, "tau")
+    tau.set("mu", "0.5")
+    tau.set("sigma", "0")
+    atau = ET.SubElement(agent_parameters, "atau")
+    atau.set("mu", "0")
+    atau.set("sigma", "0")
+    T = ET.SubElement(agent_parameters, "T")
+    T.set("mu", f"{T1:.1f}")
+    T.set("sigma", "0")
+    # -------
+    agent_parameters = ET.SubElement(model, "agent_parameters")
+    agent_parameters.set("agent_parameter_id", "2")
+    v0 = ET.SubElement(agent_parameters, "v0")
+    v0.set("mu", f"{v02:.1f}")
+    v0.set("sigma", "0")
+    bmax = ET.SubElement(agent_parameters, "bmax")
+    bmax.set("mu", f"{r2:.1f}")
+    bmax.set("sigma", "0")
+    bmin = ET.SubElement(agent_parameters, "bmin")
+    bmin.set("mu", f"{r2:.1f}")
+    bmin.set("sigma", "0")
+    amin = ET.SubElement(agent_parameters, "amin")
+    amin.set("mu", f"{r2:.1f}")
+    amin.set("sigma", "0")
+    tau = ET.SubElement(agent_parameters, "tau")
+    tau.set("mu", "0.5")
+    tau.set("sigma", "0")
+    atau = ET.SubElement(agent_parameters, "atau")
+    atau.set("mu", "0")
+    atau.set("sigma", "0")
+    T = ET.SubElement(agent_parameters, "T")
+    T.set("mu", f"{T2:.1f}")
+    T.set("sigma", "0")
+    # -------
+    agent_parameters = ET.SubElement(model, "agent_parameters")
+    agent_parameters.set("agent_parameter_id", "3")
+    v0 = ET.SubElement(agent_parameters, "v0")
+    v0.set("mu", f"{v03:.1f}")
+    v0.set("sigma", "0")
+    bmax = ET.SubElement(agent_parameters, "bmax")
+    bmax.set("mu", f"{r3:.1f}")
+    bmax.set("sigma", "0")
+    bmin = ET.SubElement(agent_parameters, "bmin")
+    bmin.set("mu", f"{r3:.1f}")
+    bmin.set("sigma", "0")
+    amin = ET.SubElement(agent_parameters, "amin")
+    amin.set("mu", f"{r3:.1f}")
+    amin.set("sigma", "0")
+    tau = ET.SubElement(agent_parameters, "tau")
+    tau.set("mu", "0.5")
+    tau.set("sigma", "0")
+    atau = ET.SubElement(agent_parameters, "atau")
+    atau.set("mu", "0")
+    atau.set("sigma", "0")
+    T = ET.SubElement(agent_parameters, "T")
+    T.set("mu", f"{T3:.1f}")
+    T.set("sigma", "0")
+    router_choice = ET.SubElement(data, "route_choice_models")
+    router = ET.SubElement(router_choice, "router")
+    router.set("router_id", "1")
+    router.set("description", "global_shortest")
+
+    b_xml = ET.tostring(data, encoding="utf8", method="xml")
+    b_xml = prettify(b_xml)
+
+   # st.code(b_xml, language="xml")
+    with open(ini_file, "w") as f:
+        f.write(b_xml)
+
+    return b_xml
+
+
+def prettify(elem):
+    """Return a pretty-printed XML string for the Element."""
+    reparsed = parseString(elem)
+    return reparsed.toprettyxml(indent="\t")
 
 
 def geo_limits(geo_xml, unit):
@@ -69,9 +258,9 @@ def plot_trajectories(
     max_x,
     min_y,
     max_y,
-):    
+):
     fig = make_subplots(rows=1, cols=1, subplot_titles=["<b>Geometry</b>"])
-    
+
     for gw in geo_walls.keys():
         trace_walls = go.Scatter(
             x=geo_walls[gw][:, 0],
@@ -90,9 +279,9 @@ def plot_trajectories(
         range=[min_x - eps, max_x + eps],
     )
     fig.update_yaxes(
-        scaleanchor = "x",
-        scaleratio = 1,
-  )
+        scaleanchor="x",
+        scaleratio=1,
+    )
     return fig
 
 
@@ -105,7 +294,7 @@ def make_circle(centerX, centerY, r):
     X = []
     Y = []
     for i in np.arange(0, 100, 0.1):
-        theta0 = np.pi/2 + i * np.pi/100
+        theta0 = np.pi / 2 + i * np.pi / 100
         x = centerX + r * np.cos(theta0)
         y = centerY + r * np.sin(theta0)
         X.append(x)
@@ -113,11 +302,14 @@ def make_circle(centerX, centerY, r):
 
     return X, Y
 
-def within_geometry(x, y, geoMinX, geoMaxX, geoMinY, geoMaxY):
-    return x > geominX and x < geomaxX and y > geominY and y < geomaxY
-            
 
-def generate_random(N, r1, r2, ped_r, centerX, centerY, geoMinX, geoMaxX, geoMinY, geoMaxY):
+def within_geometry(x, y, geoMinX, geoMaxX, geoMinY, geoMaxY):
+    return x > geoMinX and x < geoMaxX and y > geoMinY and y < geoMaxY
+
+
+def generate_random(
+    N, r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY
+):
     # biggest radius
     if r1 > r2:
         rmax = r1
@@ -128,75 +320,135 @@ def generate_random(N, r1, r2, ped_r, centerX, centerY, geoMinX, geoMaxX, geoMin
 
     possible_peds = []
     Rmax = rmax
-    while rmax > rmin+ped_r:
-        print("-----")
-        print(rmin, rmax)
-        
-        rmax -= 2*ped_r
+    while rmax > rmin + ped_r + 0.2:
+        #print("-----")
+        #print(rmin, rmax)
+
+        rmax -= 2 * ped_r
         delta_theta = 2 * ped_r / rmax
         N_possible = int(np.pi / delta_theta)
         for i in np.arange(0.5, N_possible):
-            theta0 = i * delta_theta + np.pi/2
-            print(f"theta {theta0}, {i}")
+            theta0 = i * delta_theta + np.pi / 2
+            #print(f"theta {theta0}, {i}")
             x = centerX + rmax * np.cos(theta0)
             y = centerY + rmax * np.sin(theta0)
-            if within_geometry(x, y, geoMinX, geoMaxX, geoMinY, geoMaxY):
+            if within_geometry(x, y, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY):
                 possible_peds.append((x, y))
 
-
-    pl.info(f"Possible positions {len(possible_peds)}")
+    # pl.info(f"Possible positions {len(possible_peds)}")
     if N <= len(possible_peds):
         select_peds = random.sample(possible_peds, N)  # np.pi * random
     else:
-        pl.warning(f"Wanted {N} peds but only {len(possible_peds)} are possible")
+        pl.warning(
+            f"Wanted {N} agents between {rmin:.2} and {Rmax:.2}, but only {len(possible_peds)} are possible"
+        )
         select_peds = possible_peds
-        
+
     peds = []
     for x, y in select_peds:
-        peds.append((x,y))
+        peds.append((x, y))
 
     return peds
-    
-    
-if __name__ == "__main__":
+
+
+def main():
     geometry_file = st.sidebar.file_uploader(
         "🏠 Geometry file ",
         type=["xml"],
         help="Load geometry file",
-    )    
+    )
+    ini_file = ""
     if geometry_file:
         # ------ UI
-        #st.sidebar.write("#### Area 1")
+        # st.sidebar.write("#### Area 1")
         c1, c2 = st.sidebar.columns((1, 1))
-        rmax = c1.slider("r_max1", 1.0, 3.0, 2.0, step=0.1)
-        rmin = c2.slider("r_min1", 0.1, rmax-0.5, 0.6, step=0.1)
-        #st.sidebar.write("#### Area 2")
-        rmax2 = c1.slider("r_max2", 1.0, 3.0, 2.0, step=0.1)
-        rmin2 = rmax
-        #st.sidebar.write("#### Area 3")
-        rmax2 = c2.slider("r_max3", 1.0, 3.0, 2.0, step=0.1)
-        rmin2 = rmax2        
-        rped = st.sidebar.slider("r_ped", 0.1, 0.5, 0.1)
-        st.sidebar.write("#### Origin")
-        center_x = st.sidebar.number_input('Center x', value=60.0, step=0.1)
-        center_y = st.sidebar.number_input('Center y', value=102.0, step=0.1)
-        N = st.slider("N", 10, 50, 1)
-
-        #-----------
-        geo_xml = parseString(geometry_file.getvalue())    
-        geometry_walls = read_subroom_walls(geo_xml, unit="m")
-        geominX, geomaxX, geominY, geomaxY = geo_limits(
-            geo_xml, unit="m"
+        c1_title = (
+            '<p style="font-family:Courier; color:Blue; font-size: 15px;">Circle 1</p>'
         )
-        peds = generate_random(N, rmin, rmax, rped, center_x, center_y, geominX, geomaxX, geominY, geomaxY)
-        fig = plot_trajectories(
-            geometry_walls,
-            geominX,
-            geomaxX,
-            geominY,
-            geomaxY)
+        c2_title = (
+            '<p style="font-family:Courier; color:Red; font-size: 15px;">Circle 2</p>'
+        )
+        c2.markdown(c2_title, unsafe_allow_html=True)
+        c1.markdown(c1_title, unsafe_allow_html=True)
+        rmax = c2.slider("", 1.0, 3.0, 2.0, step=0.1)
+        rmin = c1.slider("", 0.1, rmax - 0.5, 0.6, step=0.1)
+        # st.sidebar.write("#### Area 2")
+        c3_title = (
+            '<p style="font-family:Courier; color:Green; font-size: 15px;">Circle 3</p>'
+        )
+        c4_title = '<p style="font-family:Courier; color:Magenta; font-size: 15px;">Circle 4</p>'
+        c1.markdown(c3_title, unsafe_allow_html=True)
+        c2.markdown(c4_title, unsafe_allow_html=True)
 
+        rmax2 = c1.slider("", rmax + 0.5, 6.0, 3.0, step=0.1)
+        rmin2 = rmax
+        # st.sidebar.write("#### Area 3")
+        rmax3 = c2.slider("", rmax2 + 0.5, 10.0, 4.0, step=0.1)
+        rmin3 = rmax2
+        st.sidebar.write("#### Origin")
+        center_x = st.sidebar.number_input("Center x", value=60.0, step=0.1)
+        center_y = st.sidebar.number_input("Center y", value=102.0, step=0.1)
+        N1 = st.slider("N1", 10, 50, 1)
+        N2 = st.slider("N2", 10, 100, 1)
+        N3 = st.slider("N3", 10, 100, 1)
+        st.sidebar.markdown("### Model parameters: Group 1")
+        rped1 = st.sidebar.number_input("r_ped1", value=0.2, step=0.1)
+        v0_1 = st.sidebar.number_input("v0_1", value=1.2, step=0.1)
+        T_1 = st.sidebar.number_input("T_1", value=1.0, step=0.1)
+        st.sidebar.markdown("### Model parameters: Group 2")
+        rped2 = st.sidebar.number_input("r_ped2", value=0.2, step=0.1)
+        v0_2 = st.sidebar.number_input("v0_2", value=1.2, step=0.1)
+        T_2 = st.sidebar.number_input("T_2", value=1.0, step=0.1)
+        st.sidebar.markdown("### Model parameters: Group 3")
+        rped3 = st.sidebar.number_input("r_ped3", value=0.2, step=0.1)
+        v0_3 = st.sidebar.number_input("v0_3", value=1.2, step=0.1)
+        T_3 = st.sidebar.number_input("T_3", value=1.0, step=0.1)
 
+        # -----------
+        geo_xml = parseString(geometry_file.getvalue())
+        geometry_walls = read_subroom_walls(geo_xml, unit="m")
+        (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
+        st.code(_geominX)
+        peds1 = generate_random(
+            N1,
+            rmin,
+            rmax,
+            rped1,
+            center_x,
+            center_y,
+            _geominX,
+            _geomaxX,
+            _geominY,
+            _geomaxY,
+        )
+        peds2 = generate_random(
+            N2,
+            rmax,
+            rmax2,
+            rped2,
+            center_x,
+            center_y,
+            _geominX,
+            _geomaxX,
+            _geominY,
+            _geomaxY,
+        )
+        peds3 = generate_random(
+            N3,
+            rmax2,
+            rmax3,
+            rped3,
+            center_x,
+            center_y,
+            _geominX,
+            _geomaxX,
+            _geominY,
+            _geomaxY,
+        )
+
+        fig = plot_trajectories(geometry_walls, _geominX, _geomaxX, _geominY, _geomaxY)
+
+        # Circle 1
         X, Y = make_circle(center_x, center_y, rmax)
         circle1 = go.Scatter(
             x=X,
@@ -205,29 +457,104 @@ if __name__ == "__main__":
             mode="lines",
             line=dict(color="red", width=2),
         )
-        X, Y = make_circle(center_x, center_y, rmin)
         fig.append_trace(circle1, row=1, col=1)
-        
+        # Circle 2
+        X, Y = make_circle(center_x, center_y, rmin)
         circle2 = go.Scatter(
             x=X,
             y=Y,
             showlegend=False,
             mode="lines",
             line=dict(color="blue", width=2),
-        )           
+        )
         fig.append_trace(circle2, row=1, col=1)
-        for ped in peds:
+        # Circle 3
+        X, Y = make_circle(center_x, center_y, rmax2)
+        circle3 = go.Scatter(
+            x=X,
+            y=Y,
+            showlegend=False,
+            mode="lines",
+            line=dict(color="green", width=2),
+        )
+        fig.append_trace(circle3, row=1, col=1)
+        # Circle 4
+        X, Y = make_circle(center_x, center_y, rmax3)
+        circle4 = go.Scatter(
+            x=X,
+            y=Y,
+            showlegend=False,
+            mode="lines",
+            line=dict(color="magenta", width=2),
+        )
+        fig.append_trace(circle4, row=1, col=1)
+
+        for ped in peds1:
             x, y = ped
-            fig.add_shape(type="circle",
-                          xref="x", yref="y",
-                          x0=x-rped,
-                          y0=y-rped,
-                          x1=x+rped,
-                          y1=y+rped,
-                          fillcolor="PaleTurquoise",
-                          line_color="LightSeaGreen",
-                          )
+            fig.add_shape(
+                type="circle",
+                xref="x",
+                yref="y",
+                x0=x - rped1,
+                y0=y - rped1,
+                x1=x + rped1,
+                y1=y + rped1,
+                fillcolor="PaleTurquoise",
+                line_color="LightSeaGreen",
+            )
 
+        for ped in peds2:
+            x, y = ped
+            fig.add_shape(
+                type="circle",
+                xref="x",
+                yref="y",
+                x0=x - rped2,
+                y0=y - rped2,
+                x1=x + rped2,
+                y1=y + rped2,
+                fillcolor="Gray",
+                line_color="lightgray",
+            )
 
-        
+        for ped in peds3:
+            x, y = ped
+            fig.add_shape(
+                type="circle",
+                xref="x",
+                yref="y",
+                x0=x - rped3,
+                y0=y - rped3,
+                x1=x + rped3,
+                y1=y + rped3,
+                fillcolor="Blue",
+                line_color="LightBlue",
+            )
+
         st.plotly_chart(fig, use_container_width=True)
+        ini_file = "ini_" + geometry_file.name.split(".")[0] + ".xml"
+        b_xml = write_inifile(
+            rped1,
+            v0_1,
+            T_1,
+            peds1,
+            rped2,
+            v0_2,
+            T_2,
+            peds2,
+            rped3,
+            v0_3,
+            T_3,
+            peds3,
+            ini_file,
+            geometry_file,
+        )
+    return ini_file
+
+
+if __name__ == "__main__":
+    ini_file = main()
+    st.sidebar.write("-----")
+    if ini_file:
+        with open(ini_file, encoding="utf-8") as f:
+            st.download_button("Download inifile", f, file_name=ini_file)

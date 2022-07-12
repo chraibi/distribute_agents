@@ -416,7 +416,6 @@ def main(geometry_file):
         geo_xml = parseString(geometry_file.getvalue())
         geometry_walls = read_subroom_walls(geo_xml, unit="m")
         (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
-        st.code(_geominX)
         peds1 = generate_random(
             N1,
             rmin,
@@ -561,7 +560,20 @@ def main(geometry_file):
 
 
 if __name__ == "__main__":
- 
+
+    st.header("**Documentation (click to expand)**")
+    with st.expander(""):
+     st.write("""
+    This app creates an inifile that can be used to make JuPedSim-simulations.
+     It randomly distributes 3 groups of agents in semi-circular setups.
+     Besides, for every group 3 different parameters can be changed:
+     - $r\_ped$: The radius of agents
+     - $v_0$: The desired speed of agents. The **higher** the more "motivated" are the agents.
+     - $T$: The time gap. This parameter can be interpreted as the willingness to close gaps to the neighbors. The **smaller**, the more eager are agents to close gaps.
+
+     When finished tweaking the parameters click on `Download inifile` to download the inifile!
+     The simulation with the downloaded file will generate a trajectory file, with the parameter values encoded in its name.
+     """)
     st.sidebar.image("jupedsim.png", use_column_width=True)
     gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
     repo = "https://github.com/chraibi/distribute_agents"

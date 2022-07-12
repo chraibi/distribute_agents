@@ -307,6 +307,7 @@ def within_geometry(x, y, geoMinX, geoMaxX, geoMinY, geoMaxY):
     return x > geoMinX and x < geoMaxX and y > geoMinY and y < geoMaxY
 
 
+@st.cache
 def generate_random(
     N, r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY
 ):
@@ -351,12 +352,7 @@ def generate_random(
     return peds
 
 
-def main():
-    geometry_file = st.sidebar.file_uploader(
-        "🏠 Geometry file ",
-        type=["xml"],
-        help="Load geometry file",
-    )
+def main(geometry_file):
     ini_file = ""
     if geometry_file:
         # ------ UI
@@ -553,7 +549,12 @@ def main():
 
 
 if __name__ == "__main__":
-    ini_file = main()
+    geometry_file = st.sidebar.file_uploader(
+        "🏠 Geometry file ",
+        type=["xml"],
+        help="Load geometry file",
+    )
+    ini_file = main(geometry_file)
     st.sidebar.write("-----")
     if ini_file:
         with open(ini_file, encoding="utf-8") as f:

@@ -7,6 +7,18 @@ import plotly.graph_objs as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
+st.set_page_config(
+    page_title="JuPedSim: Make inifile",
+    page_icon=":bar_chart:",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        "Get Help": "https://github.com/jupedsim/jpscore",
+        "Report a bug": "https://github.com/jupedsim/jpscore/issues",
+        "About": "Open source framework for simulating, analyzing and visualizing pedestrian dynamics",
+    },
+)
+
 pl = st.empty()
 
 
@@ -549,6 +561,12 @@ def main(geometry_file):
 
 
 if __name__ == "__main__":
+ 
+    st.sidebar.image("jupedsim.png", use_column_width=True)
+    gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
+    repo = "https://github.com/chraibi/distribute_agents"
+    repo_name = f"[![Repo]({gh})]({repo})"
+    st.sidebar.markdown(repo_name, unsafe_allow_html=True)
     geometry_file = st.sidebar.file_uploader(
         "🏠 Geometry file ",
         type=["xml"],

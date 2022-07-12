@@ -1,11 +1,11 @@
 import random
+import xml.etree.ElementTree as ET
+from xml.dom.minidom import parse, parseString
+
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 import streamlit as st
 from plotly.subplots import make_subplots
-import plotly.graph_objs as go
-from xml.dom.minidom import parse, parseString
-import xml.etree.ElementTree as ET
 
 pl = st.empty()
 

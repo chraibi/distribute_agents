@@ -110,7 +110,7 @@ def write_inifile(
     exit_str.text = "3"
     lcells = ET.SubElement(parameters, "linkedcells")
     lcells.set("enabled", "true")
-    lcells.set("cell_size", "2.2")
+    lcells.set("cell_size", "3")
     force_ped = ET.SubElement(parameters, "force_ped")
     force_ped.set("a", "8")
     force_ped.set("D", "0.1")

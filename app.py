@@ -229,6 +229,7 @@ def prettify(elem):
 
 def geo_limits(geo_xml, unit):
     geometry_wall = read_subroom_walls(geo_xml, unit)
+    print(geometry_wall)
     geominX = 1000
     geomaxX = -1000
     geominY = 1000
@@ -414,8 +415,6 @@ def main(geometry_file):
 
     ini_file = ""
     if geometry_file:
-        geo_xml = parseString(geometry_file.getvalue())
-        (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
         # ------ UI
         choice = st.sidebar.radio("Same density for all groups?", ("yes", "no"))
         # st.sidebar.write("#### Area 1")
@@ -486,6 +485,9 @@ def main(geometry_file):
 
         sigma_T_3 = c2.number_input("sigma T_3", value=0.0, step=0.1, format="%.1f")
 
+        geo_xml = parseString(geometry_file.getvalue())
+        (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
+        
         # Number of pedestrians
         if choice == "no":
             N1 = st.slider("N1", 10, 50, 1)

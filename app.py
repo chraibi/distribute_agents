@@ -23,10 +23,26 @@ pl = st.empty()
 
 
 def write_inifile(
-        r1, v01, sigma_v0_1, T1, sigma_T_1, peds1,
-        r2, v02, sigma_v0_2, T2, sigma_T_2, peds2,
-        r3, v03, sigma_v0_3, T3, sigma_T_3, peds3,
-        ini_file, geometry_file
+    r1,
+    v01,
+    sigma_v0_1,
+    T1,
+    sigma_T_1,
+    peds1,
+    r2,
+    v02,
+    sigma_v0_2,
+    T2,
+    sigma_T_2,
+    peds2,
+    r3,
+    v03,
+    sigma_v0_3,
+    T3,
+    sigma_T_3,
+    peds3,
+    ini_file,
+    geometry_file,
 ):
     global_group_id = 1
     # --------
@@ -53,12 +69,12 @@ def write_inifile(
     agents = ET.SubElement(data, "agents")
     agents.set("operational_model_id", "3")
     dist = ET.SubElement(agents, "agents_distribution")
-    #print("peds", peds1)
+    # print("peds", peds1)
     for (X1, Y1) in peds1:
-        #st.code(f"G1: {X1:.3f}, {Y1:.3f}")
+        # st.code(f"G1: {X1:.3f}, {Y1:.3f}")
         group = ET.SubElement(dist, "group")
         group.set("group_id", f"{global_group_id}")
-        #global_group_id += 1
+        # global_group_id += 1
         group.set("agent_parameter_id", "1")
         group.set("room_id", "1")
         group.set("subroom_id", "0")
@@ -66,33 +82,32 @@ def write_inifile(
         group.set("router_id", "1")
         group.set("startX", f"{X1:.3f}")
         group.set("startY", f"{Y1:.3f}")
-        
 
     global_group_id += 1
     # -----
-    #print("peds2", peds2)
+    # print("peds2", peds2)
     for (X2, Y2) in peds2:
-        #st.code(f"G2: {X2:.3f}, {Y2:.3f}")
+        # st.code(f"G2: {X2:.3f}, {Y2:.3f}")
         group = ET.SubElement(dist, "group")
         group.set("group_id", f"{global_group_id}")
-        #global_group_id += 1
+        # global_group_id += 1
         group.set("agent_parameter_id", "2")
         group.set("room_id", "1")
         group.set("subroom_id", "0")
         group.set("number", "1")
         group.set("router_id", "1")
         group.set("startX", f"{X2:.3f}")
-        group.set("startY", f"{Y2:.3f}")        
-        
+        group.set("startY", f"{Y2:.3f}")
+
     # -----
     global_group_id += 1
-#    print("peds3", peds3)
+    #    print("peds3", peds3)
     for (X3, Y3) in peds3:
-#        print(peds3)
- #       st.code(f"G3: {X3:.3f}, {Y3:.3f}")
+        #        print(peds3)
+        #       st.code(f"G3: {X3:.3f}, {Y3:.3f}")
         group = ET.SubElement(dist, "group")
         group.set("group_id", f"{global_group_id}")
-        #global_group_id += 1
+        # global_group_id += 1
         group.set("agent_parameter_id", "3")
         group.set("room_id", "1")
         group.set("subroom_id", "0")
@@ -100,7 +115,6 @@ def write_inifile(
         group.set("router_id", "1")
         group.set("startX", f"{X3:.3f}")
         group.set("startY", f"{Y3:.3f}")
-        
 
     operational = ET.SubElement(data, "operational_models")
     model = ET.SubElement(operational, "model")
@@ -200,7 +214,7 @@ def write_inifile(
     b_xml = ET.tostring(data, encoding="utf8", method="xml")
     b_xml = prettify(b_xml)
 
-   # st.code(b_xml, language="xml")
+    # st.code(b_xml, language="xml")
     with open(ini_file, "w") as f:
         f.write(b_xml)
 
@@ -323,9 +337,7 @@ def within_geometry(x, y, geoMinX, geoMaxX, geoMinY, geoMaxY):
 
 
 @st.cache
-def area(
-    r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY
-):
+def area(r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY):
     # biggest radius
     if r1 > r2:
         rmax = r1
@@ -342,13 +354,13 @@ def area(
         N_possible = int(np.pi / delta_theta)
         for i in np.arange(0.5, N_possible):
             theta0 = i * delta_theta + np.pi / 2
-            #print(f"theta {theta0}, {i}")
+            # print(f"theta {theta0}, {i}")
             x = centerX + rmax * np.cos(theta0)
             y = centerY + rmax * np.sin(theta0)
             if within_geometry(x, y, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY):
                 possible_peds.append((x, y))
 
-    area = len(possible_peds) * np.pi * ped_r **2
+    area = len(possible_peds) * np.pi * ped_r**2
 
     return area
 
@@ -368,15 +380,15 @@ def generate_random(
     possible_peds = []
     Rmax = rmax
     while rmax > rmin + ped_r + 0.2:
-        #print("-----")
-        #print(rmin, rmax)
+        # print("-----")
+        # print(rmin, rmax)
 
         rmax -= 2 * ped_r
         delta_theta = 2 * ped_r / rmax
         N_possible = int(np.pi / delta_theta)
         for i in np.arange(0.5, N_possible):
             theta0 = i * delta_theta + np.pi / 2
-            #print(f"theta {theta0}, {i}")
+            # print(f"theta {theta0}, {i}")
             x = centerX + rmax * np.cos(theta0)
             y = centerY + rmax * np.sin(theta0)
             if within_geometry(x, y, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY):
@@ -399,11 +411,11 @@ def generate_random(
 
 
 def main(geometry_file):
-    geo_xml = parseString(geometry_file.getvalue())
-    (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
 
     ini_file = ""
     if geometry_file:
+        geo_xml = parseString(geometry_file.getvalue())
+        (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
         # ------ UI
         choice = st.sidebar.radio("Same density for all groups?", ("yes", "no"))
         # st.sidebar.write("#### Area 1")
@@ -439,18 +451,18 @@ def main(geometry_file):
         state3 = a3.number_input("G3", value=0, step=1, min_value=0, max_value=1)
         center_x = st.sidebar.number_input("Center x", value=60.0, step=0.1)
         center_y = st.sidebar.number_input("Center y", value=102.0, step=0.1)
-        
+
         st.sidebar.markdown("### Model parameters: Group 1")
         rped1 = st.sidebar.number_input("r_ped1", value=0.2, step=0.1, format="%.1f")
         c1, c2 = st.sidebar.columns((1, 1))
         v0_1 = c1.number_input("v0_1", value=1.2, step=0.1, format="%.1f")
-        sigma_v0_1 = c2.number_input("sigma v0_1", value=0., step=0.1, format="%.1f")
+        sigma_v0_1 = c2.number_input("sigma v0_1", value=0.0, step=0.1, format="%.1f")
         if state1 == 1:
             T_1 = c1.number_input("T_1", value=0.1, step=0.1, format="%.1f")
         if state1 == 0:
             T_1 = c1.number_input("T_1", value=1.3, step=0.1, format="%.1f")
-            
-        sigma_T_1 = c2.number_input("sigma T_1", value=0., step=0.1, format="%.1f")
+
+        sigma_T_1 = c2.number_input("sigma T_1", value=0.0, step=0.1, format="%.1f")
         st.sidebar.markdown("### Model parameters: Group 2")
         rped2 = st.sidebar.number_input("r_ped2", value=0.2, step=0.1, format="%.1f")
         c1, c2 = st.sidebar.columns((1, 1))
@@ -460,22 +472,20 @@ def main(geometry_file):
             T_2 = c1.number_input("T_2", value=0.1, step=0.1, format="%.1f")
         if state2 == 0:
             T_2 = c1.number_input("T_2", value=1.3, step=0.1, format="%.1f")
-        
+
         sigma_T_2 = c2.number_input("sigma T_2", value=0.0, step=0.1, format="%.1f")
         st.sidebar.markdown("### Model parameters: Group 3")
         rped3 = st.sidebar.number_input("r_ped3", value=0.2, step=0.1, format="%.1f")
-        c1, c2 = st.sidebar.columns((1, 1))        
+        c1, c2 = st.sidebar.columns((1, 1))
         v0_3 = c1.number_input("v0_3", value=1.2, step=0.1, format="%.1f")
-        sigma_v0_3 = c2.number_input("sigma v0_3", value=0.0, step=0.1, format="%.1f")        
+        sigma_v0_3 = c2.number_input("sigma v0_3", value=0.0, step=0.1, format="%.1f")
         if state3 == 1:
             T_3 = c1.number_input("T_3", value=0.1, step=0.1, format="%.1f")
         if state3 == 0:
             T_3 = c1.number_input("T_3", value=1.3, step=0.1, format="%.1f")
-        
+
         sigma_T_3 = c2.number_input("sigma T_3", value=0.0, step=0.1, format="%.1f")
 
-        
-        
         # Number of pedestrians
         if choice == "no":
             N1 = st.slider("N1", 10, 50, 1)
@@ -485,27 +495,52 @@ def main(geometry_file):
             N1 = st.slider("N1", 10, 50, 1)
             N2 = N1
             N3 = N1
-    
+
             A1 = area(
-                rmin, rmax, rped1, center_x, center_y, _geominX, _geomaxX, _geominY, _geomaxY
+                rmin,
+                rmax,
+                rped1,
+                center_x,
+                center_y,
+                _geominX,
+                _geomaxX,
+                _geominY,
+                _geomaxY,
             )
             A2 = area(
-                rmax, rmax2, rped2, center_x, center_y, _geominX, _geomaxX, _geominY, _geomaxY
+                rmax,
+                rmax2,
+                rped2,
+                center_x,
+                center_y,
+                _geominX,
+                _geomaxX,
+                _geominY,
+                _geomaxY,
             )
             A3 = area(
-                rmax2, rmax3, rped3, center_x, center_y, _geominX, _geomaxX, _geominY, _geomaxY
+                rmax2,
+                rmax3,
+                rped3,
+                center_x,
+                center_y,
+                _geominX,
+                _geomaxX,
+                _geominY,
+                _geomaxY,
             )
-            N2 = int(A2/A1*N1)
-            N3 = int(A3/A1*N1)
-            st.info(f"""
+            N2 = int(A2 / A1 * N1)
+            N3 = int(A3 / A1 * N1)
+            st.info(
+                f"""
             A1: {A1:.2f}, N1: {N1}\n
             A2: {A2:.2f}, N2: {N2}\n
-            A3: {A3:.2f}, N3: {N3}""")
-            
-            
+            A3: {A3:.2f}, N3: {N3}"""
+            )
+
         # -----------
         geometry_walls = read_subroom_walls(geo_xml, unit="m")
-        
+
         peds1 = generate_random(
             N1,
             rmin,
@@ -659,7 +694,8 @@ if __name__ == "__main__":
 
     st.header("**Documentation (click to expand)**")
     with st.expander(""):
-     st.write("""
+        st.write(
+            """
     This app creates an inifile that can be used to make JuPedSim-simulations.
      It randomly distributes 3 groups of agents in semi-circular setups.
      Besides, for every group 3 different parameters can be changed:
@@ -669,7 +705,8 @@ if __name__ == "__main__":
 
      When finished tweaking the parameters click on `Download inifile` to download the inifile!
      The simulation with the downloaded file will generate a trajectory file, with the parameter values encoded in its name.
-     """)
+     """
+        )
     st.sidebar.image("jupedsim.png", use_column_width=True)
     gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
     repo = "https://github.com/chraibi/distribute_agents"

@@ -23,7 +23,10 @@ pl = st.empty()
 
 
 def write_inifile(
-    r1, v01, T1, peds1, r2, v02, T2, peds2, r3, v03, T3, peds3, ini_file, geometry_file
+        r1, v01, sigma_v0_1, T1, sigma_T_1, peds1,
+        r2, v02, sigma_v0_2, T2, sigma_T_2, peds2,
+        r3, v03, sigma_v0_3, T3, sigma_T_3, peds3,
+        ini_file, geometry_file
 ):
     global_group_id = 1
     # --------
@@ -122,7 +125,7 @@ def write_inifile(
     agent_parameters.set("agent_parameter_id", "1")
     v0 = ET.SubElement(agent_parameters, "v0")
     v0.set("mu", f"{v01:.1f}")
-    v0.set("sigma", "0")
+    v0.set("sigma", f"{sigma_v0_1:.1f}")
     bmax = ET.SubElement(agent_parameters, "bmax")
     bmax.set("mu", f"{r1:.1f}")
     bmax.set("sigma", "0")
@@ -320,6 +323,37 @@ def within_geometry(x, y, geoMinX, geoMaxX, geoMinY, geoMaxY):
 
 
 @st.cache
+def area(
+    r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY
+):
+    # biggest radius
+    if r1 > r2:
+        rmax = r1
+        rmin = r2
+    else:
+        rmax = r2
+        rmin = r1
+
+    possible_peds = []
+    Rmax = rmax
+    while rmax > rmin + ped_r + 0.2:
+        rmax -= 2 * ped_r
+        delta_theta = 2 * ped_r / rmax
+        N_possible = int(np.pi / delta_theta)
+        for i in np.arange(0.5, N_possible):
+            theta0 = i * delta_theta + np.pi / 2
+            #print(f"theta {theta0}, {i}")
+            x = centerX + rmax * np.cos(theta0)
+            y = centerY + rmax * np.sin(theta0)
+            if within_geometry(x, y, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY):
+                possible_peds.append((x, y))
+
+    area = len(possible_peds) * np.pi * ped_r **2
+
+    return area
+
+
+@st.cache
 def generate_random(
     N, r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY
 ):
@@ -365,9 +399,13 @@ def generate_random(
 
 
 def main(geometry_file):
+    geo_xml = parseString(geometry_file.getvalue())
+    (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
+
     ini_file = ""
     if geometry_file:
         # ------ UI
+        choice = st.sidebar.radio("Same density for all groups?", ("yes", "no"))
         # st.sidebar.write("#### Area 1")
         c1, c2 = st.sidebar.columns((1, 1))
         c1_title = (
@@ -394,28 +432,80 @@ def main(geometry_file):
         rmax3 = c2.slider("", rmax2 + 0.5, 10.0, 4.0, step=0.1)
         rmin3 = rmax2
         st.sidebar.write("#### Origin")
+        st.write("#### Motivation state")
+        a1, a2, a3 = st.columns((1, 1, 1))
+        state1 = a1.number_input("G1", value=0, step=1, min_value=0, max_value=1)
+        state2 = a2.number_input("G2", value=0, step=1, min_value=0, max_value=1)
+        state3 = a3.number_input("G3", value=0, step=1, min_value=0, max_value=1)
         center_x = st.sidebar.number_input("Center x", value=60.0, step=0.1)
         center_y = st.sidebar.number_input("Center y", value=102.0, step=0.1)
-        N1 = st.slider("N1", 10, 50, 1)
-        N2 = st.slider("N2", 10, 100, 1)
-        N3 = st.slider("N3", 10, 100, 1)
+        
         st.sidebar.markdown("### Model parameters: Group 1")
-        rped1 = st.sidebar.number_input("r_ped1", value=0.2, step=0.1)
-        v0_1 = st.sidebar.number_input("v0_1", value=1.2, step=0.1)
-        T_1 = st.sidebar.number_input("T_1", value=1.0, step=0.1)
+        rped1 = st.sidebar.number_input("r_ped1", value=0.2, step=0.1, format="%.1f")
+        c1, c2 = st.sidebar.columns((1, 1))
+        v0_1 = c1.number_input("v0_1", value=1.2, step=0.1, format="%.1f")
+        sigma_v0_1 = c2.number_input("sigma v0_1", value=0., step=0.1, format="%.1f")
+        if state1 == 1:
+            T_1 = c1.number_input("T_1", value=0.1, step=0.1, format="%.1f")
+        if state1 == 0:
+            T_1 = c1.number_input("T_1", value=1.3, step=0.1, format="%.1f")
+            
+        sigma_T_1 = c2.number_input("sigma T_1", value=0., step=0.1, format="%.1f")
         st.sidebar.markdown("### Model parameters: Group 2")
-        rped2 = st.sidebar.number_input("r_ped2", value=0.2, step=0.1)
-        v0_2 = st.sidebar.number_input("v0_2", value=1.2, step=0.1)
-        T_2 = st.sidebar.number_input("T_2", value=1.0, step=0.1)
+        rped2 = st.sidebar.number_input("r_ped2", value=0.2, step=0.1, format="%.1f")
+        c1, c2 = st.sidebar.columns((1, 1))
+        v0_2 = c1.number_input("v0_2", value=1.2, step=0.1)
+        sigma_v0_2 = c2.number_input("sigma v0_2", value=0.0, step=0.1, format="%.1f")
+        if state2 == 1:
+            T_2 = c1.number_input("T_2", value=0.1, step=0.1, format="%.1f")
+        if state2 == 0:
+            T_2 = c1.number_input("T_2", value=1.3, step=0.1, format="%.1f")
+        
+        sigma_T_2 = c2.number_input("sigma T_2", value=0.0, step=0.1, format="%.1f")
         st.sidebar.markdown("### Model parameters: Group 3")
-        rped3 = st.sidebar.number_input("r_ped3", value=0.2, step=0.1)
-        v0_3 = st.sidebar.number_input("v0_3", value=1.2, step=0.1)
-        T_3 = st.sidebar.number_input("T_3", value=1.0, step=0.1)
+        rped3 = st.sidebar.number_input("r_ped3", value=0.2, step=0.1, format="%.1f")
+        c1, c2 = st.sidebar.columns((1, 1))        
+        v0_3 = c1.number_input("v0_3", value=1.2, step=0.1, format="%.1f")
+        sigma_v0_3 = c2.number_input("sigma v0_3", value=0.0, step=0.1, format="%.1f")        
+        if state3 == 1:
+            T_3 = c1.number_input("T_3", value=0.1, step=0.1, format="%.1f")
+        if state3 == 0:
+            T_3 = c1.number_input("T_3", value=1.3, step=0.1, format="%.1f")
+        
+        sigma_T_3 = c2.number_input("sigma T_3", value=0.0, step=0.1, format="%.1f")
 
+        
+        
+        # Number of pedestrians
+        if choice == "no":
+            N1 = st.slider("N1", 10, 50, 1)
+            N2 = st.slider("N2", 10, 100, 1)
+            N3 = st.slider("N3", 10, 100, 1)
+        else:
+            N1 = st.slider("N1", 10, 50, 1)
+            N2 = N1
+            N3 = N1
+    
+            A1 = area(
+                rmin, rmax, rped1, center_x, center_y, _geominX, _geomaxX, _geominY, _geomaxY
+            )
+            A2 = area(
+                rmax, rmax2, rped2, center_x, center_y, _geominX, _geomaxX, _geominY, _geomaxY
+            )
+            A3 = area(
+                rmax2, rmax3, rped3, center_x, center_y, _geominX, _geomaxX, _geominY, _geomaxY
+            )
+            N2 = int(A2/A1*N1)
+            N3 = int(A3/A1*N1)
+            st.info(f"""
+            A1: {A1:.2f}, N1: {N1}\n
+            A2: {A2:.2f}, N2: {N2}\n
+            A3: {A3:.2f}, N3: {N3}""")
+            
+            
         # -----------
-        geo_xml = parseString(geometry_file.getvalue())
         geometry_walls = read_subroom_walls(geo_xml, unit="m")
-        (_geominX, _geomaxX, _geominY, _geomaxY) = geo_limits(geo_xml, unit="m")
+        
         peds1 = generate_random(
             N1,
             rmin,
@@ -543,15 +633,21 @@ def main(geometry_file):
         b_xml = write_inifile(
             rped1,
             v0_1,
+            sigma_v0_1,
             T_1,
+            sigma_T_1,
             peds1,
             rped2,
             v0_2,
+            sigma_v0_2,
             T_2,
+            sigma_T_2,
             peds2,
             rped3,
             v0_3,
+            sigma_v0_3,
             T_3,
+            sigma_T_3,
             peds3,
             ini_file,
             geometry_file,

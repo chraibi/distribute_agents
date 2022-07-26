@@ -1,11 +1,12 @@
 import random
 import xml.etree.ElementTree as ET
 from xml.dom.minidom import parse, parseString
-
+from itertools import product
 import numpy as np
 import plotly.graph_objs as go
 import streamlit as st
 from plotly.subplots import make_subplots
+from zipfile import ZipFile
 
 st.set_page_config(
     page_title="JuPedSim: Make inifile",
@@ -64,7 +65,10 @@ def write_inifile(
     traj.set("precision", "4")
     traj.set("color_mode", "group")
     file_l = ET.SubElement(traj, "file")
-    traj_name = f"trajectories_R1_{r1:.1f}_V1_{v01:.1f}_T1_{T1:.1f}_R2_{r2:.1f}_V2_{v02:.1f}_T2_{T2:.1f}_R3_{r3:.1f}_V3_{v03:.1f}_T3_{T3:.1f}"
+    #traj_name = f"trajectories_R1_{r1:.1f}_V1_{v01:.1f}_T1_{T1:.1f}_R2_{r2:.1f}_V2_{v02:.1f}_T2_{T2:.1f}_R3_{r3:.1f}_V3_{v03:.1f}_T3_{T3:.1f}"
+    traj_name = "traj_" + ini_file.split("ini_")[-1]
+    print(ini_file)
+    print(traj_name)
     file_l.set("location", traj_name)
     agents = ET.SubElement(data, "agents")
     agents.set("operational_model_id", "3")
@@ -229,7 +233,7 @@ def prettify(elem):
 
 def geo_limits(geo_xml, unit):
     geometry_wall = read_subroom_walls(geo_xml, unit)
-    print(geometry_wall)
+    #print(geometry_wall)
     geominX = 1000
     geomaxX = -1000
     geominY = 1000
@@ -368,8 +372,9 @@ def area(r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY
 
 @st.cache
 def generate_random(
-    N, r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY
+        N, r1, r2, ped_r, centerX, centerY, _geoMinX, _geoMaxX, _geoMinY, _geoMaxY, seed
 ):
+    random.seed(seed)
     # biggest radius
     if r1 > r2:
         rmax = r1
@@ -397,7 +402,14 @@ def generate_random(
 
     # pl.info(f"Possible positions {len(possible_peds)}")
     if N <= len(possible_peds):
+        #print("Before ----")
+        #print(possible_peds)
+        #print("After ----")
+        random.shuffle(possible_peds)
+        #print(possible_peds)
+        #print("Select ----")
         select_peds = random.sample(possible_peds, N)  # np.pi * random
+        #print(select_peds)
     else:
         pl.warning(
             f"Wanted {N} agents between {rmin:.2} and {Rmax:.2}, but only {len(possible_peds)} are possible"
@@ -414,9 +426,14 @@ def generate_random(
 def main(geometry_file):
 
     ini_file = ""
+    inifiles = []
     if geometry_file:
         # ------ UI
         choice = st.sidebar.radio("Same density for all groups?", ("yes", "no"))
+        bash_mode = st.sidebar.radio("Bash mode?", ("no", "yes"), help="no for interactive mode.")
+        if bash_mode == "yes":
+            n_runs = st.sidebar.number_input("Number of runs", value=10, step=1)
+            n_runs = int(n_runs)
         # st.sidebar.write("#### Area 1")
         c1, c2 = st.sidebar.columns((1, 1))
         c1_title = (
@@ -442,46 +459,54 @@ def main(geometry_file):
         # st.sidebar.write("#### Area 3")
         rmax3 = c2.slider("", rmax2 + 0.5, 10.0, 4.0, step=0.1)
         rmin3 = rmax2
+        if bash_mode == "no":            
+            st.write("#### Motivation state")
+            a1, a2, a3 = st.columns((1, 1, 1))
+            state1 = a1.number_input("G1", value=0, step=1, min_value=0, max_value=1)
+            state2 = a2.number_input("G2", value=0, step=1, min_value=0, max_value=1)
+            state3 = a3.number_input("G3", value=0, step=1, min_value=0, max_value=1)
+
         st.sidebar.write("#### Origin")
-        st.write("#### Motivation state")
-        a1, a2, a3 = st.columns((1, 1, 1))
-        state1 = a1.number_input("G1", value=0, step=1, min_value=0, max_value=1)
-        state2 = a2.number_input("G2", value=0, step=1, min_value=0, max_value=1)
-        state3 = a3.number_input("G3", value=0, step=1, min_value=0, max_value=1)
         center_x = st.sidebar.number_input("Center x", value=60.0, step=0.1)
         center_y = st.sidebar.number_input("Center y", value=102.0, step=0.1)
-
         st.sidebar.markdown("### Model parameters: Group 1")
         rped1 = st.sidebar.number_input("r_ped1", value=0.2, step=0.1, format="%.1f")
         c1, c2 = st.sidebar.columns((1, 1))
         v0_1 = c1.number_input("v0_1", value=1.2, step=0.1, format="%.1f")
         sigma_v0_1 = c2.number_input("sigma v0_1", value=0.0, step=0.1, format="%.1f")
-        if state1 == 1:
-            T_1 = c1.number_input("T_1", value=0.1, step=0.1, format="%.1f")
-        if state1 == 0:
-            T_1 = c1.number_input("T_1", value=1.3, step=0.1, format="%.1f")
+        if bash_mode == "no":
+            if state1 == 1:
+                T_1 = c1.number_input("T_1", value=0.1, step=0.1, format="%.1f")
+            if state1 == 0:
+                T_1 = c1.number_input("T_1", value=1.3, step=0.1, format="%.1f")
 
         sigma_T_1 = c2.number_input("sigma T_1", value=0.0, step=0.1, format="%.1f")
+        
         st.sidebar.markdown("### Model parameters: Group 2")
         rped2 = st.sidebar.number_input("r_ped2", value=0.2, step=0.1, format="%.1f")
+
         c1, c2 = st.sidebar.columns((1, 1))
         v0_2 = c1.number_input("v0_2", value=1.2, step=0.1)
         sigma_v0_2 = c2.number_input("sigma v0_2", value=0.0, step=0.1, format="%.1f")
-        if state2 == 1:
-            T_2 = c1.number_input("T_2", value=0.1, step=0.1, format="%.1f")
-        if state2 == 0:
-            T_2 = c1.number_input("T_2", value=1.3, step=0.1, format="%.1f")
+        if bash_mode == "no":
+            if state2 == 1:
+                T_2 = c1.number_input("T_2", value=0.1, step=0.1, format="%.1f")
+            if state2 == 0:
+                T_2 = c1.number_input("T_2", value=1.3, step=0.1, format="%.1f")
 
         sigma_T_2 = c2.number_input("sigma T_2", value=0.0, step=0.1, format="%.1f")
+        
         st.sidebar.markdown("### Model parameters: Group 3")
         rped3 = st.sidebar.number_input("r_ped3", value=0.2, step=0.1, format="%.1f")
+
         c1, c2 = st.sidebar.columns((1, 1))
         v0_3 = c1.number_input("v0_3", value=1.2, step=0.1, format="%.1f")
-        sigma_v0_3 = c2.number_input("sigma v0_3", value=0.0, step=0.1, format="%.1f")
-        if state3 == 1:
-            T_3 = c1.number_input("T_3", value=0.1, step=0.1, format="%.1f")
-        if state3 == 0:
-            T_3 = c1.number_input("T_3", value=1.3, step=0.1, format="%.1f")
+        sigma_v0_3 = c2.number_input("sigma v0_3", value=0.0, step=0.1, format="%.1f")    
+        if bash_mode == "no":
+            if state3 == 1:
+                T_3 = c1.number_input("T_3", value=0.1, step=0.1, format="%.1f")
+            if state3 == 0:
+                T_3 = c1.number_input("T_3", value=1.3, step=0.1, format="%.1f")
 
         sigma_T_3 = c2.number_input("sigma T_3", value=0.0, step=0.1, format="%.1f")
 
@@ -490,11 +515,11 @@ def main(geometry_file):
         
         # Number of pedestrians
         if choice == "no":
-            N1 = st.slider("N1", 10, 50, 1)
-            N2 = st.slider("N2", 10, 100, 1)
-            N3 = st.slider("N3", 10, 100, 1)
+            N1 = st.slider("N1", 10, 50, 5)
+            N2 = st.slider("N2", 10, 100, 5)
+            N3 = st.slider("N3", 10, 100, 5)
         else:
-            N1 = st.slider("N1", 10, 50, 1)
+            N1 = st.slider("N1", 10, 50, 5)
             N2 = N1
             N3 = N1
 
@@ -542,154 +567,207 @@ def main(geometry_file):
 
         # -----------
         geometry_walls = read_subroom_walls(geo_xml, unit="m")
+        if bash_mode == "yes":
+            states = list(product([0, 1], [0, 1], [0, 1]))
+        else:
+            n_runs = 1
+            states = [[1, 1, 1]]
 
-        peds1 = generate_random(
-            N1,
-            rmin,
-            rmax,
-            rped1,
-            center_x,
-            center_y,
-            _geominX,
-            _geomaxX,
-            _geominY,
-            _geomaxY,
-        )
-        peds2 = generate_random(
-            N2,
-            rmax,
-            rmax2,
-            rped2,
-            center_x,
-            center_y,
-            _geominX,
-            _geomaxX,
-            _geominY,
-            _geomaxY,
-        )
-        peds3 = generate_random(
-            N3,
-            rmax2,
-            rmax3,
-            rped3,
-            center_x,
-            center_y,
-            _geominX,
-            _geomaxX,
-            _geominY,
-            _geomaxY,
-        )
+        
+        for (a, b, c) in states:
+            print("states", a,b,c)
+            for run in range(n_runs):
+                seed = run*100
+                peds1 = generate_random(
+                    N1,
+                    rmin,
+                    rmax,
+                    rped1,
+                    center_x,
+                    center_y,
+                    _geominX,
+                    _geomaxX,
+                    _geominY,
+                    _geomaxY,
+                    seed
+                )
+                peds2 = generate_random(
+                    N2,
+                    rmax,
+                    rmax2,
+                    rped2,
+                    center_x,
+                    center_y,
+                    _geominX,
+                    _geomaxX,
+                    _geominY,
+                    _geomaxY,
+                    seed
+                )
+                peds3 = generate_random(
+                    N3,
+                    rmax2,
+                    rmax3,
+                    rped3,
+                    center_x,
+                    center_y,
+                    _geominX,
+                    _geomaxX,
+                    _geominY,
+                    _geomaxY,
+                    seed
+                )
+                if bash_mode == "yes":
+                    if a == 1:
+                        T_1 = 0.1
+                    else:
+                        T_1 = 1.3
 
-        fig = plot_trajectories(geometry_walls, _geominX, _geomaxX, _geominY, _geomaxY)
+                    if b == 1:
+                        T_2 = 0.1
+                    else:
+                        T_2 = 1.3
+                    
+                    if c == 1:
+                        T_3 = 0.1
+                    else:
+                        T_3 = 1.3
 
-        # Circle 1
-        X, Y = make_circle(center_x, center_y, rmax)
-        circle1 = go.Scatter(
-            x=X,
-            y=Y,
-            showlegend=False,
-            mode="lines",
-            line=dict(color="red", width=2),
-        )
-        fig.append_trace(circle1, row=1, col=1)
-        # Circle 2
-        X, Y = make_circle(center_x, center_y, rmin)
-        circle2 = go.Scatter(
-            x=X,
-            y=Y,
-            showlegend=False,
-            mode="lines",
-            line=dict(color="blue", width=2),
-        )
-        fig.append_trace(circle2, row=1, col=1)
-        # Circle 3
-        X, Y = make_circle(center_x, center_y, rmax2)
-        circle3 = go.Scatter(
-            x=X,
-            y=Y,
-            showlegend=False,
-            mode="lines",
-            line=dict(color="green", width=2),
-        )
-        fig.append_trace(circle3, row=1, col=1)
-        # Circle 4
-        X, Y = make_circle(center_x, center_y, rmax3)
-        circle4 = go.Scatter(
-            x=X,
-            y=Y,
-            showlegend=False,
-            mode="lines",
-            line=dict(color="magenta", width=2),
-        )
-        fig.append_trace(circle4, row=1, col=1)
+                print("---")
+                print(run)
+                print(peds1)
+                print(peds2)
+                print(peds3)
+                
+                # create inifiles
+                ini_file = f"ini_run_{run}_state_{a}_{b}_{c}_" + geometry_file.name.split(".")[0] + ".xml"
+                #print(ini_file)
+                b_xml = write_inifile(
+                    rped1,
+                    v0_1,
+                    sigma_v0_1,
+                    T_1,
+                    sigma_T_1,
+                    peds1,
+                    rped2,
+                    v0_2,
+                    sigma_v0_2,
+                    T_2,
+                    sigma_T_2,
+                    peds2,
+                    rped3,
+                    v0_3,
+                    sigma_v0_3,
+                    T_3,
+                    sigma_T_3,
+                    peds3,
+                    ini_file,
+                    geometry_file,
+                )
+                inifiles.append(ini_file)
+                
+            #print("--", run)
+            #print(inifiles, len(inifiles))
+    
+        # Now we have a bunch of inifiles. Make zip
+        # writing files to a zipfile
+        if bash_mode == "yes":
+            with ZipFile('inifiles.zip','w') as zip:
+                # writing each file one by one
+                for inifile in inifiles:
+                    zip.write(inifile)
 
-        for ped in peds1:
-            x, y = ped
-            fig.add_shape(
-                type="circle",
-                xref="x",
-                yref="y",
-                x0=x - rped1,
-                y0=y - rped1,
-                x1=x + rped1,
-                y1=y + rped1,
-                fillcolor="PaleTurquoise",
-                line_color="LightSeaGreen",
+            ini_file = ""
+
+        if bash_mode == "no":
+            fig = plot_trajectories(geometry_walls, _geominX, _geomaxX, _geominY, _geomaxY)
+
+            # Circle 1
+            X, Y = make_circle(center_x, center_y, rmax)
+            circle1 = go.Scatter(
+                x=X,
+                y=Y,
+                showlegend=False,
+                mode="lines",
+                line=dict(color="red", width=2),
             )
-
-        for ped in peds2:
-            x, y = ped
-            fig.add_shape(
-                type="circle",
-                xref="x",
-                yref="y",
-                x0=x - rped2,
-                y0=y - rped2,
-                x1=x + rped2,
-                y1=y + rped2,
-                fillcolor="Gray",
-                line_color="lightgray",
+            fig.append_trace(circle1, row=1, col=1)
+            # Circle 2
+            X, Y = make_circle(center_x, center_y, rmin)
+            circle2 = go.Scatter(
+                x=X,
+                y=Y,
+                showlegend=False,
+                mode="lines",
+                line=dict(color="blue", width=2),
             )
-
-        for ped in peds3:
-            x, y = ped
-            fig.add_shape(
-                type="circle",
-                xref="x",
-                yref="y",
-                x0=x - rped3,
-                y0=y - rped3,
-                x1=x + rped3,
-                y1=y + rped3,
-                fillcolor="Blue",
-                line_color="LightBlue",
+            fig.append_trace(circle2, row=1, col=1)
+            # Circle 3
+            X, Y = make_circle(center_x, center_y, rmax2)
+            circle3 = go.Scatter(
+                x=X,
+                y=Y,
+                showlegend=False,
+                mode="lines",
+                line=dict(color="green", width=2),
             )
+            fig.append_trace(circle3, row=1, col=1)
+            # Circle 4
+            X, Y = make_circle(center_x, center_y, rmax3)
+            circle4 = go.Scatter(
+                x=X,
+                y=Y,
+                showlegend=False,
+                mode="lines",
+                line=dict(color="magenta", width=2),
+            )
+            fig.append_trace(circle4, row=1, col=1)
 
-        st.plotly_chart(fig, use_container_width=True)
-        ini_file = "ini_" + geometry_file.name.split(".")[0] + ".xml"
-        b_xml = write_inifile(
-            rped1,
-            v0_1,
-            sigma_v0_1,
-            T_1,
-            sigma_T_1,
-            peds1,
-            rped2,
-            v0_2,
-            sigma_v0_2,
-            T_2,
-            sigma_T_2,
-            peds2,
-            rped3,
-            v0_3,
-            sigma_v0_3,
-            T_3,
-            sigma_T_3,
-            peds3,
-            ini_file,
-            geometry_file,
-        )
-    return ini_file
+            for ped in peds1:
+                x, y = ped
+                fig.add_shape(
+                    type="circle",
+                    xref="x",
+                    yref="y",
+                    x0=x - rped1,
+                    y0=y - rped1,
+                    x1=x + rped1,
+                    y1=y + rped1,
+                    fillcolor="PaleTurquoise",
+                    line_color="LightSeaGreen",
+                )
+
+            for ped in peds2:
+                x, y = ped
+                fig.add_shape(
+                    type="circle",
+                    xref="x",
+                    yref="y",
+                    x0=x - rped2,
+                    y0=y - rped2,
+                    x1=x + rped2,
+                    y1=y + rped2,
+                    fillcolor="Gray",
+                    line_color="lightgray",
+                )
+
+            for ped in peds3:
+                x, y = ped
+                fig.add_shape(
+                    type="circle",
+                    xref="x",
+                    yref="y",
+                    x0=x - rped3,
+                    y0=y - rped3,
+                    x1=x + rped3,
+                    y1=y + rped3,
+                    fillcolor="Blue",
+                    line_color="LightBlue",
+                )
+
+            st.plotly_chart(fig, use_container_width=True)
+        
+    return ini_file, inifiles
 
 
 if __name__ == "__main__":
@@ -719,8 +797,18 @@ if __name__ == "__main__":
         type=["xml"],
         help="Load geometry file",
     )
-    ini_file = main(geometry_file)
+    ini_file, inifiles = main(geometry_file)
     st.sidebar.write("-----")
     if ini_file:
         with open(ini_file, encoding="utf-8") as f:
-            st.download_button("Download inifile", f, file_name=ini_file)
+            st.download_button("Download inifile",
+                               f,
+                               file_name=ini_file)
+    
+    if len(inifiles) >= 2:
+        with open("inifiles.zip", "rb") as f:
+            st.download_button("Download inifiles",
+                               f,
+                               file_name="inifiles.zip",
+                               mime="application/zip")
+    
